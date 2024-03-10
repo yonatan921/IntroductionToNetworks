@@ -15,6 +15,7 @@ class TriviaClient:
 
         self.broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.broadcast_socket.bind(("", TriviaClient.LISTENING_PORT))
+        print("Client started, listening for offer requests...")
 
     def connect_to_server(self):
         try:
@@ -36,7 +37,7 @@ class TriviaClient:
     def receive_question_messages(self):
         try:
             while True:
-                client_socket, client_address = self.tcp_socket.accept()
+                client_socket, client_address = self.tcp_socket.recvfrom(1024)
                 time.sleep(1)
         except Exception as e:
             print(f"Error receiving messages: {e}")
@@ -51,6 +52,7 @@ class TriviaClient:
                 if not offer_message:
                     break
                 self.parse_offer(offer_message)
+                print(f"Received offer from server '{self.server_name}' at address {server_address}, attempting to connect...")
                 break
         except Exception as e:
             print(f"Error receiving messages: {e}")

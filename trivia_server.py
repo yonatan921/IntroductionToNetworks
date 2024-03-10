@@ -3,6 +3,7 @@ import threading
 import time
 import random
 
+SERVER_NAME = "TrivYos"
 
 class TriviaServer:
     def __init__(self):
@@ -22,9 +23,13 @@ class TriviaServer:
         self.game_active = False
 
     def broadcast_offer(self):
-        offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'Mystic'.ljust(32) + self.server_port.to_bytes(2, 'big')
+        offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + self.server_port.to_bytes(2, 'big')
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # broadcast_socket.bind(('172.1.0.4', self.server_port))
+        # broadcast_socket.listen(5)
+        print("Server started, listening on IP address ___")
+
 
         try:
             while not self.game_active:
@@ -45,7 +50,8 @@ class TriviaServer:
     def start_game(self):
         self.game_active = True
         # Send welcome message to clients
-        welcome_message = f"Welcome to the Mystic server, where we answer trivia questions about Aston Villa FC.\n"
+        welcome_message = f"Welcome to the {SERVER_NAME} server, " \
+                          f"where we answer trivia questions about Aston Villa FC.\n"
         for i, player in enumerate(self.players, start=1):
             welcome_message += f"Player {i}: {player['name']}\n"
         welcome_message += "==\n"
@@ -53,6 +59,7 @@ class TriviaServer:
         # Select a random question
         self.current_question = random.choice(self.questions)
         welcome_message += f"True or false: {self.current_question['question']}"
+        print(welcome_message)
 
         # Broadcast the welcome message to all clients
         for player in self.players:
@@ -73,7 +80,7 @@ class TriviaServer:
                         self.players.append({'name': player_name, 'socket': client_socket})
                         print(f"Player {player_name} connected from {addr}")
 
-                        if len(self.players) == 3:
+                        if len(self.players) == 1:
                             threading.Thread(target=self.start_game).start()
                     else:
                         client_socket.send("Game in progress. Try again later.".encode('utf-8'))
