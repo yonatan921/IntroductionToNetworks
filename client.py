@@ -56,14 +56,12 @@ class TriviaClient:
 
     def receive_offer_messages(self):
         try:
-            while True:
-                offer_message, server_address = self.broadcast_socket.recvfrom(1024)
-                self.server_ip = server_address[0]
-                if not offer_message:
-                    break
-                self.parse_offer(offer_message)
-                print(f"Received offer from server '{self.server_name}' at address {server_address}, attempting to connect...")
-                break
+            offer_message, server_address = self.broadcast_socket.recvfrom(1024)
+            self.server_ip = server_address[0]
+            if not offer_message:
+                pass
+            self.parse_offer(offer_message)
+            print(f"Received offer from server '{self.server_name}' at address {server_address}, attempting to connect...")
         except Exception as e:
             print(f"Error receiving messages: {e}")
         finally:
