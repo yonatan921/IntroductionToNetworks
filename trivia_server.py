@@ -1,3 +1,4 @@
+import asyncio
 import socket
 import threading
 import time
@@ -5,7 +6,7 @@ import random
 
 SERVER_NAME = "TrivYos"
 SERVER_IP_ADDRESS = '127.1.0.4'
-SERVER_TCP_PORT = 5000
+SERVER_TCP_PORT = 8888
 
 class TriviaServer:
     def __init__(self):
@@ -22,6 +23,11 @@ class TriviaServer:
         self.current_question = None
         self.lock = threading.Lock()
         self.game_active = False
+        self.event = threading.Event()
+
+    def reset_timer(self):
+        self.timer = threading.Timer(10, self.start_game)
+        self.timer.start()
 
     def udp_broadcast(self):
         UDP_IP = '255.255.255.255'
@@ -29,7 +35,7 @@ class TriviaServer:
         offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + SERVER_TCP_PORT.to_bytes(2, 'big')
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        broadcast_socket.bind((SERVER_IP_ADDRESS, UDP_PORT))
+        # broadcast_socket.bind((SERVER_IP_ADDRESS, UDP_PORT))
         print(f"Server started, listening on IP address {SERVER_IP_ADDRESS}")
         try:
             while not self.game_active:
@@ -54,14 +60,36 @@ class TriviaServer:
     #     finally:
     #         broadcast_socket.close()
 
-    def handle_client(self, client_socket, player_name):
-        try:
-            # Handle client connection and game logic here
-            pass
-        except Exception as e:
-            print(f"Error handling client {player_name}: {e}")
-        finally:
-            client_socket.close()
+    async def handle_client(self, reader, writer):
+        while True:
+            data = await reader.read(1024)
+            if not data:
+                break  # connection closed
+            message = data.decode('utf-8')
+            # player_name = client_socket.recv(1024).decode('utf-8').strip()
+            print(f"Received data: {message}")
+            # Handle the received data, you can raise your event here
+            writer.write(data)
+            await writer.drain()
+
+        writer.close()
+
+
+    # # def handle_client(self, client_socket, player_name):
+    # #     try:
+    # #         # Handle client connection and game logic here
+    # #         client_socket, client_address = self.server_socket.accept()
+    # #         print(f"Accepted connection from {client_address}")
+    # #         player_name = client_socket.recv(1024).decode('utf-8').strip()
+    # #         client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
+    # #         client_thread.start()
+    #
+    #
+    #         pass
+    #     except Exception as e:
+    #         print(f"Error handling client {player_name}: {e}")
+    #     finally:
+    #         client_socket.close()
 
     def start_game(self):
         self.game_active = True
@@ -85,26 +113,43 @@ class TriviaServer:
 
     def run(self):
         threading.Thread(target=self.udp_broadcast).start()
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(self.start())
+        # asyncio.run(self.start())
 
-        try:
-            while True:
-                client_socket, addr = self.server_socket.accept()
-                player_name = client_socket.recv(1024).decode('utf-8').strip()
+        # try:
+        #     while not self.event.is_set():
+        #         client_socket, client_address = self.server_socket.accept()
+        #         print(f"Accepted connection from {client_address}")
+        #         player_name = client_socket.recv(1024).decode('utf-8').strip()
+        #         client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
+        #         client_thread.start()
+        #
+        #     while True:
+        #         client_socket, addr = self.server_socket.accept()
+        #         player_name = client_socket.recv(1024).decode('utf-8').strip()
+        #
+        #         with self.lock:
+        #             if not self.game_active:
+        #                 self.players.append({'name': player_name, 'socket': client_socket})
+        #                 print(f"Player {player_name} connected from {addr}")
+        #                 self.reset_timer()
+        #
+        #                 if len(self.players) == 1:
+        #                     threading.Thread(target=self.start_game).start()
+        #             else:
+        #                 client_socket.send("Game in progress. Try again later.".encode('utf-8'))
+        #                 client_socket.close()
+        # except KeyboardInterrupt:
+        #     pass
+        # finally:
+        #     self.server_socket.close()
 
-                with self.lock:
-                    if not self.game_active:
-                        self.players.append({'name': player_name, 'socket': client_socket})
-                        print(f"Player {player_name} connected from {addr}")
-
-                        if len(self.players) == 1:
-                            threading.Thread(target=self.start_game).start()
-                    else:
-                        client_socket.send("Game in progress. Try again later.".encode('utf-8'))
-                        client_socket.close()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.server_socket.close()
+    async def start(self):
+        self.server = await asyncio.start_server(self.handle_client, SERVER_IP_ADDRESS, SERVER_TCP_PORT)
+        async with self.server:
+            print(f"Serving on {SERVER_IP_ADDRESS}:{SERVER_TCP_PORT}")
+            await self.server.serve_forever()
 
 
 if __name__ == "__main__":
