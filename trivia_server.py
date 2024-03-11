@@ -8,10 +8,10 @@ SERVER_NAME = "TrivYos"
 class TriviaServer:
     def __init__(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind(('0.0.0.0', 0))  # Binding to 0.0.0.0 allows connections from any IP
+        # self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind(('127.1.0.4', 5000))  # Binding to 0.0.0.0 allows connections from any IP
         self.server_socket.listen(5)
-        self.server_port = self.server_socket.getsockname()[1]
+        self.server_port = 5000
         self.players = []
         self.questions = [
             {"question": "Aston Villa's current manager is Pep Guardiola", "answer": False},
@@ -22,21 +22,36 @@ class TriviaServer:
         self.lock = threading.Lock()
         self.game_active = False
 
-    def broadcast_offer(self):
+    def udp_broadcast(self):
+        UDP_IP = '255.255.255.255'
+        UDP_PORT = 13117
         offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + self.server_port.to_bytes(2, 'big')
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        # broadcast_socket.bind(('172.1.0.4', self.server_port))
-        # broadcast_socket.listen(5)
+        broadcast_socket.bind(('127.1.0.4', 5000))
         print("Server started, listening on IP address ___")
-
-
         try:
             while not self.game_active:
-                broadcast_socket.sendto(offer_message, ('<broadcast>', 13117))
+                broadcast_socket.sendto(offer_message, (UDP_IP, UDP_PORT))
                 time.sleep(1)
         finally:
             broadcast_socket.close()
+
+    # def broadcast_offer(self):
+    #     offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + self.server_port.to_bytes(2, 'big')
+    #     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #     broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    #     # broadcast_socket.bind(('172.1.0.4', self.server_port))
+    #     # broadcast_socket.listen(5)
+    #     print("Server started, listening on IP address ___")
+    #
+    #
+    #     try:
+    #         while not self.game_active:
+    #             broadcast_socket.sendto(offer_message, ('<broadcast>', 13117))
+    #             time.sleep(1)
+    #     finally:
+    #         broadcast_socket.close()
 
     def handle_client(self, client_socket, player_name):
         try:
@@ -68,7 +83,7 @@ class TriviaServer:
         # TODO: Implement game logic here
 
     def run(self):
-        threading.Thread(target=self.broadcast_offer, daemon=True).start()
+        threading.Thread(target=self.udp_broadcast).start()
 
         try:
             while True:

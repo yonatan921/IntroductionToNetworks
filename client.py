@@ -83,8 +83,8 @@ class TriviaClient:
 
 if __name__ == "__main__":
     # Replace these values with the actual server IP, port, and player name
-    server_ip = "127.0.0.1"
-    server_port = 12345
+    server_ip = "127.1.0.4"
+    server_port = 5000
     player_name = "Alice"
 
     trivia_client = TriviaClient(server_ip, server_port, player_name)
