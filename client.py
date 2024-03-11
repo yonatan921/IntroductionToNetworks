@@ -38,7 +38,16 @@ class TriviaClient:
         try:
             while True:
                 client_socket, client_address = self.tcp_socket.recvfrom(1024)
-                print(client_socket)
+                server_message = client_socket.decode('utf-8')
+                print(server_message)
+                input_answer = input()
+                bool_answer = None
+                if input_answer in ('T', 1, 'Y', 't', 'y'):
+                    bool_answer = True
+                elif input_answer in ('F', 0, 'N', 'f', 'n'):
+                    bool_answer = False
+                if bool_answer is not None:
+                    self.tcp_socket.send(str(bool_answer).encode('utf-8'))
                 time.sleep(1)
         except Exception as e:
             print(f"Error receiving messages: {e}")
