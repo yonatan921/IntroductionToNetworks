@@ -38,6 +38,7 @@ class TriviaClient:
         try:
             while True:
                 client_socket, client_address = self.tcp_socket.recvfrom(1024)
+                print(client_socket)
                 time.sleep(1)
         except Exception as e:
             print(f"Error receiving messages: {e}")

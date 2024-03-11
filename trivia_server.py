@@ -4,14 +4,15 @@ import time
 import random
 
 SERVER_NAME = "TrivYos"
+SERVER_IP_ADDRESS = '127.1.0.4'
+SERVER_TCP_PORT = 5000
 
 class TriviaServer:
     def __init__(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind(('127.1.0.4', 5000))  # Binding to 0.0.0.0 allows connections from any IP
+        self.server_socket.bind((SERVER_IP_ADDRESS, SERVER_TCP_PORT))  # Binding to 0.0.0.0 allows connections from any IP
         self.server_socket.listen(5)
-        self.server_port = 5000
         self.players = []
         self.questions = [
             {"question": "Aston Villa's current manager is Pep Guardiola", "answer": False},
@@ -25,11 +26,11 @@ class TriviaServer:
     def udp_broadcast(self):
         UDP_IP = '255.255.255.255'
         UDP_PORT = 13117
-        offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + self.server_port.to_bytes(2, 'big')
+        offer_message = b'\xab\xcd\xdc\xba' + b'\x02' + b'TriviYos'.ljust(32) + SERVER_TCP_PORT.to_bytes(2, 'big')
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        broadcast_socket.bind(('127.1.0.4', 5000))
-        print("Server started, listening on IP address ___")
+        broadcast_socket.bind((SERVER_IP_ADDRESS, UDP_PORT))
+        print(f"Server started, listening on IP address {SERVER_IP_ADDRESS}")
         try:
             while not self.game_active:
                 broadcast_socket.sendto(offer_message, (UDP_IP, UDP_PORT))
